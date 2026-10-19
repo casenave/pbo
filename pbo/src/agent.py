@@ -6,14 +6,14 @@ import warnings
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '10'
 warnings.filterwarnings('ignore',category=FutureWarning)
 import tensorflow                    as     tf
-import tensorflow.keras              as     tk
+import tf_keras                      as     tk
 import tensorflow_probability        as     tfp
-from   tensorflow.keras              import Model
-from   tensorflow.keras.layers       import Dense
-from   tensorflow.keras.initializers import Orthogonal, LecunNormal
+from   tf_keras                      import Model
+from   tf_keras.layers               import Dense
+from   tf_keras.initializers         import LecunNormal
 
 # Define alias
-tf.keras.backend.set_floatx('float64')
+tk.backend.set_floatx('float64')
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 tfd = tfp.distributions
 

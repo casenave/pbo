@@ -13,12 +13,15 @@ class par_envs:
         self.n_cpu   = n_cpu
         self.p_pipes = []
         self.proc    = []
+        # TensorFlow may already have started threads in the parent process.
+        # Use a fresh interpreter on every platform instead of forking them.
+        context = mp.get_context('spawn')
 
         # Start environments
         for cpu in range(n_cpu):
-            p_pipe, c_pipe = mp.Pipe()
+            p_pipe, c_pipe = context.Pipe()
             name           = str(cpu)
-            process = mp.Process(target = worker,
+            process = context.Process(target = worker,
                                  name   = name,
                                  args   = (env_name, name,
                                            c_pipe, p_pipe,
@@ -67,6 +70,8 @@ class par_envs:
         for p in self.proc:
             p.terminate()
             p.join()
+        for pipe in self.p_pipes:
+            pipe.close()
 
     # Take one step in all environments
     def step(self, actions, n, ep):
@@ -89,7 +94,7 @@ class par_envs:
             temp_size = len(self.act_size)
 
         acc = np.reshape(acc, (n,temp_size))
-        rwd = np.reshape(rwd, (n,1))
+        rwd = np.reshape(rwd, (n,))
 
         return rwd, acc
 

@@ -20,17 +20,50 @@ Neural Computing and Applications, vol. 35, iss. 1, 2023
 
 ## Installation and usage
 
+PBO supports **CPython 3.11, 3.12 and 3.13**. The CPU test matrix covers
+Linux x86-64 and Windows x86-64. Python 3.14 and 3.15 are not supported:
+the published TensorFlow wheels currently stop at Python 3.13.
+
+The training backend remains TensorFlow. The dependency set uses TensorFlow
+2.20.0, TensorFlow Probability 0.25.0 and `tf-keras` 2.20.1 (Keras 2).
+PBO imports `tf_keras` explicitly because TensorFlow Probability does not
+support Keras 3. No `TF_USE_LEGACY_KERAS` environment variable is required.
+See the [TensorFlow installation guide](https://www.tensorflow.org/install/pip)
+and [TensorFlow Probability release notes](https://github.com/tensorflow/probability/releases/tag/v0.25.0).
+
 After cloning the package, just `cd` inside the folder and install using:
 
 ```
-pip install -e .
+python -m venv .venv
+# Linux/macOS: source .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -e .
+python -m pip check
 ```
+
+Dependencies are declared in `setup.py`; `pip install -r requirements.txt`
+installs the same editable package. The previous frozen Python 3.6-era
+dependency list is no longer used. GPU and other operating-system/architecture
+combinations are subject to TensorFlow's platform support and are not covered
+by this project's CPU matrix.
 
 The environments from the paper are available in the `envs/*` folder. For each `.py` environment file, you need a `.json` parameter file **located in the same directory**. To run an environment, just use:
 
 ```
 pbo path/to/envs/my_env.json
 ```
+
+Run the compatibility and training regression tests with:
+
+```
+python -m unittest discover -s tests -v
+```
+
+The tests exercise continuous (`es`, `cma-diag`, `cma-full`) and discrete
+policy updates, parallel environments using `spawn`, result files, and a
+single-generation CLI run including its plot. CI also checks a regular package
+installation and the installed command outside the source checkout.
 
 Below are some selected optimization cases performed with the algorithm.
 
