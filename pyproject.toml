@@ -25,6 +25,9 @@ classifiers = [
 [project.scripts]
 pbo = "pbo.src.main:main"
 
+[project.optional-dependencies]
+cuda = ["tensorflow[and-cuda]==2.20.0; sys_platform == 'linux'"]
+
 [tool.setuptools.packages.find]
 include = ["pbo", "pbo.src", "envs"]
 namespaces = true

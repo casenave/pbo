@@ -54,6 +54,40 @@ python -m pip install -e .
 python -m pip check
 ```
 
+### NVIDIA GPU (optional)
+
+On Linux or Windows through WSL2, enable the `cuda` extra to install the
+CUDA/cuDNN user-space libraries required by the pinned TensorFlow version:
+
+```
+uv sync --locked --extra cuda --python 3.12
+uv run --locked --extra cuda pbo envs/sphere_2d.json
+```
+
+With pip, use `python -m pip install -e ".[cuda]"` instead. A compatible NVIDIA
+GPU and driver must already be available; the extra does not install the driver.
+See the [TensorFlow GPU setup guide](https://www.tensorflow.org/install/pip).
+Native Windows and macOS are not supported by this CUDA option: its dependency
+is Linux-only and is ignored on those systems. Run the commands inside WSL2
+when using Windows with an NVIDIA GPU.
+
+Check that TensorFlow detects the GPU:
+
+```
+uv run --locked --extra cuda python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
+```
+
+An empty list means GPU access is not working; TensorFlow can still fall back
+to the CPU. Keep `--extra cuda` on `uv run`/`uv sync` commands that synchronize
+the environment. To return to the default installation, run `uv sync --locked`
+without the extra. The default installation does not install NVIDIA libraries
+and can emit GPU detection warnings on Linux.
+
+CI checks CUDA-extra installation and CPU fallback on a Linux runner without a
+GPU; it does not validate GPU execution or performance.
+
+### Running and testing
+
 Metadata, dependencies, package discovery and the CLI entry point are declared
 in `pyproject.toml`; `uv.lock` pins the resolved dependencies across supported
 Python versions. `pip install -r requirements.txt` installs the same editable
