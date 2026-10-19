@@ -8,9 +8,13 @@ warnings.filterwarnings('ignore',category=FutureWarning)
 import tensorflow                    as     tf
 import tf_keras                      as     tk
 import tensorflow_probability        as     tfp
+from   pbo.src.gpu                   import configure_gpus
 from   tf_keras                      import Model
 from   tf_keras.layers               import Dense
 from   tf_keras.initializers         import LecunNormal
+
+# Cap the GPU footprint before the first kernel initializes the devices
+configure_gpus()
 
 # Define alias
 tk.backend.set_floatx('float64')

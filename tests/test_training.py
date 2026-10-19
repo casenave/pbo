@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from types import SimpleNamespace
+from unittest import mock
 
 os.environ.setdefault('MPLBACKEND', 'Agg')
 
@@ -14,10 +15,12 @@ import tensorflow as tf
 
 from pbo.src.continuous import continuous
 from pbo.src.discrete import discrete
+from pbo.src.gpu import MEMORY_LIMIT_ENV, configure_gpus, memory_limit_from_env
 from pbo.src.par_envs import par_envs
 from pbo.src.train import train
 
 ROOT = Path(__file__).resolve().parents[1]
+HAS_GPU = bool(tf.config.list_physical_devices('GPU'))
 
 
 def parameters(name):
@@ -28,6 +31,58 @@ def parameters(name):
         if key in values:
             values[key] = 1
     return SimpleNamespace(**values)
+
+
+def run_python(script, output, **env_overrides):
+    env = os.environ.copy()
+    env.update(env_overrides)
+    return subprocess.run([sys.executable, '-c', script],
+                          cwd=output, env=env, capture_output=True,
+                          text=True, timeout=300)
+
+
+class GpuMemoryTests(unittest.TestCase):
+    def test_memory_limit_from_env(self):
+        for value, expected in [('', None), ('   ', None), ('0', None),
+                                ('-2048', None), ('4096', 4096),
+                                ('2048.0', 2048)]:
+            with self.subTest(value=value), \
+                    mock.patch.dict(os.environ, {MEMORY_LIMIT_ENV: value}):
+                self.assertEqual(memory_limit_from_env(), expected)
+
+    def test_memory_limit_from_env_rejects_garbage(self):
+        with mock.patch.dict(os.environ, {MEMORY_LIMIT_ENV: '4Go'}):
+            with self.assertRaises(ValueError):
+                memory_limit_from_env()
+
+    def test_configure_gpus_after_initialization_is_harmless(self):
+        # Training tests already ran kernels: configuration must not raise.
+        self.assertIsInstance(configure_gpus(), list)
+
+    @unittest.skipUnless(HAS_GPU, 'requires a visible GPU')
+    def test_fresh_process_grows_memory_on_demand(self):
+        script = (
+            'import tensorflow as tf\n'
+            'import pbo.src.agent\n'
+            'print([tf.config.experimental.get_memory_growth(g)\n'
+            '       for g in tf.config.list_physical_devices("GPU")])\n')
+        result = run_python(script, str(ROOT), **{})
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        growth = result.stdout.strip().splitlines()[-1]
+        self.assertEqual(growth, '[True]')
+
+    @unittest.skipUnless(HAS_GPU, 'requires a visible GPU')
+    def test_fresh_process_honours_memory_limit(self):
+        script = (
+            'import tensorflow as tf\n'
+            'import pbo.src.agent\n'
+            'gpus = tf.config.list_physical_devices("GPU")\n'
+            'conf = tf.config.get_logical_device_configuration(gpus[0])\n'
+            'print([d.memory_limit for d in conf])\n')
+        result = run_python(script, str(ROOT),
+                            **{MEMORY_LIMIT_ENV: '512'})
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.strip().splitlines()[-1], '[512]')
 
 
 class TrainingTests(unittest.TestCase):

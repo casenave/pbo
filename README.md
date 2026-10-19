@@ -79,9 +79,25 @@ uv run --locked --extra cuda python -c "import tensorflow as tf; print(tf.config
 
 An empty list means GPU access is not working; TensorFlow can still fall back
 to the CPU. Keep `--extra cuda` on `uv run`/`uv sync` commands that synchronize
-the environment. To return to the default installation, run `uv sync --locked`
-without the extra. The default installation does not install NVIDIA libraries
-and can emit GPU detection warnings on Linux.
+the environment.
+
+By default TensorFlow reserves all the free GPU memory at the first kernel,
+which starves anything else sharing the card. PBO therefore configures the GPU
+on import: memory grows on demand, so the run only holds what it uses (a few
+hundred MiB for the bundled environments). To cap the footprint with a hard
+limit instead, for instance to keep room for a desktop session:
+
+```
+PBO_GPU_MEMORY_LIMIT_MB=2048 uv run --locked --extra cuda pbo envs/sphere_2d.json
+```
+
+The cap is applied per GPU, in MiB; an empty, zero or negative value falls back
+to memory growth, and a non-numeric value fails immediately instead of silently
+re-enabling the full preallocation.
+
+To return to the default installation, run `uv sync --locked` without the
+extra. The default installation does not install NVIDIA libraries and can emit
+GPU detection warnings on Linux.
 
 CI checks CUDA-extra installation and CPU fallback on a Linux runner without a
 GPU; it does not validate GPU execution or performance.
