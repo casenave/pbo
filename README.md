@@ -31,7 +31,19 @@ support Keras 3. No `TF_USE_LEGACY_KERAS` environment variable is required.
 See the [TensorFlow installation guide](https://www.tensorflow.org/install/pip)
 and [TensorFlow Probability release notes](https://github.com/tensorflow/probability/releases/tag/v0.25.0).
 
-After cloning the package, just `cd` inside the folder and install using:
+After [installing uv](https://docs.astral.sh/uv/getting-started/installation/),
+clone the repository, `cd` inside it, and install the locked dependencies:
+
+```
+uv sync --locked --python 3.12
+uv run --locked pbo envs/sphere_2d.json
+```
+
+You can select Python 3.11 or 3.13 instead. uv creates `.venv` automatically;
+no manual activation is needed. Commit `uv.lock` when updating dependencies
+with `uv lock --upgrade`, and run the tests before committing the update.
+
+Standard pip installation is also supported:
 
 ```
 python -m venv .venv
@@ -42,8 +54,10 @@ python -m pip install -e .
 python -m pip check
 ```
 
-Dependencies are declared in `setup.py`; `pip install -r requirements.txt`
-installs the same editable package. The previous frozen Python 3.6-era
+Metadata, dependencies, package discovery and the CLI entry point are declared
+in `pyproject.toml`; `uv.lock` pins the resolved dependencies across supported
+Python versions. `pip install -r requirements.txt` installs the same editable
+package but does not use the uv lockfile. The previous frozen Python 3.6-era
 dependency list is no longer used. GPU and other operating-system/architecture
 combinations are subject to TensorFlow's platform support and are not covered
 by this project's CPU matrix.
@@ -51,19 +65,22 @@ by this project's CPU matrix.
 The environments from the paper are available in the `envs/*` folder. For each `.py` environment file, you need a `.json` parameter file **located in the same directory**. To run an environment, just use:
 
 ```
-pbo path/to/envs/my_env.json
+uv run --locked pbo path/to/envs/my_env.json
 ```
 
 Run the compatibility and training regression tests with:
 
 ```
-python -m unittest discover -s tests -v
+uv run --locked python -m unittest discover -s tests -v
+uv build
 ```
 
 The tests exercise continuous (`es`, `cma-diag`, `cma-full`) and discrete
 policy updates, parallel environments using `spawn`, result files, and a
-single-generation CLI run including its plot. CI also checks a regular package
-installation and the installed command outside the source checkout.
+single-generation CLI run including its plot. CI uses `uv sync --locked
+--no-editable`, builds both the wheel and source distribution, and checks the
+installed command outside the source checkout. With pip, activate your virtual
+environment and omit `uv run --locked` from the commands above.
 
 Below are some selected optimization cases performed with the algorithm.
 

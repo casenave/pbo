@@ -1,3 +1,33 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "pbo"
+version = "0.0.1"
+description = "Policy-based optimization for black-box optimization"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "tensorflow==2.20.0",
+    "tensorflow-probability==0.25.0",
+    "tf-keras==2.20.1",
+    "numpy>=1.26,<2.3",
+    "matplotlib>=3.9,<4",
+    "scipy>=1.14,<2",
+]
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.scripts]
+pbo = "pbo.src.main:main"
+
+[tool.setuptools.packages.find]
+include = ["pbo", "pbo.src", "envs"]
+namespaces = true
+
+[tool.setuptools.package-data]
+envs = ["*.json"]
