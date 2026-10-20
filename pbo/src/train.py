@@ -29,7 +29,7 @@ def train(params, output_path, env_path, run):
 
     # Initialize parameters
     ep      = 0
-    bst_acc = np.zeros(act_size)
+    bst_acc = np.zeros(agent.act_dim)
     bst_rwd =-1.0e8
     bst_ep  = 0
 
@@ -84,7 +84,7 @@ def train(params, output_path, env_path, run):
         agent.write_learning_data(output_path, run)
 
         # Printings
-        agent.print_generation(gen, bst_ep, bst_rwd[0])
+        agent.print_generation(gen, bst_ep, bst_rwd)
 
     # Close environments
     env.close()

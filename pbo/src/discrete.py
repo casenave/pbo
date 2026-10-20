@@ -72,7 +72,7 @@ class discrete(base_pbo):
         for j in range(n):
             for i,pdf in enumerate(pdfs):
                 ac = pdf.sample(1)
-                actions[j,i] = ac
+                actions[j,i] = np.asarray(ac).item()
 
         return actions
 

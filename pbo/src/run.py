@@ -4,6 +4,7 @@ import sys
 import json
 import time
 import collections
+import argparse
 import numpy             as np
 import matplotlib.pyplot as plt
 
@@ -23,12 +24,10 @@ def params_decoder(p_dict):
 def run():
 
     # Check command-line input for json file
-    if (len(sys.argv) == 2):
-        json_file = sys.argv[1]
-        env_path  = os.path.dirname(os.path.abspath(json_file))
-    else:
-        print('Command line error, please use as follows:')
-        print('pbo path/to/my_env.json')
+    parser = argparse.ArgumentParser(description='Policy-based optimization')
+    parser.add_argument('parameters', help='Path to the environment JSON file')
+    json_file = parser.parse_args().parameters
+    env_path = os.path.dirname(os.path.abspath(json_file))
 
     # Read json parameter file
     with open(json_file, "r") as f:
@@ -57,11 +56,11 @@ def run():
         dt = time.time() - start_time
         print('#   Elapsed time: {:.3f} seconds'.format(dt))
 
-        f            = np.loadtxt(output_path+'/pbo_bst_'+str(i))
+        f            = np.loadtxt(output_path+'/pbo_bst_'+str(i), ndmin=2)
         gen          = f[:params.n_gen,0]
         rwd[i,:]     = f[:params.n_gen,2]
 
-        f_avg        = np.loadtxt(output_path+'/pbo_avg_'+str(i))
+        f_avg        = np.loadtxt(output_path+'/pbo_avg_'+str(i), ndmin=2)
         avg_rwd[i,:] = f_avg[:params.n_gen,1]
 
     # Write to file

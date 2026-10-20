@@ -20,17 +20,117 @@ Neural Computing and Applications, vol. 35, iss. 1, 2023
 
 ## Installation and usage
 
-After cloning the package, just `cd` inside the folder and install using:
+PBO supports **CPython 3.11, 3.12 and 3.13**. The CPU test matrix covers
+Linux x86-64 and Windows x86-64. Python 3.14 and 3.15 are not supported:
+the published TensorFlow wheels currently stop at Python 3.13.
+
+The training backend remains TensorFlow. The dependency set uses TensorFlow
+2.20.0, TensorFlow Probability 0.25.0 and `tf-keras` 2.20.1 (Keras 2).
+PBO imports `tf_keras` explicitly because TensorFlow Probability does not
+support Keras 3. No `TF_USE_LEGACY_KERAS` environment variable is required.
+See the [TensorFlow installation guide](https://www.tensorflow.org/install/pip)
+and [TensorFlow Probability release notes](https://github.com/tensorflow/probability/releases/tag/v0.25.0).
+
+After [installing uv](https://docs.astral.sh/uv/getting-started/installation/),
+clone the repository, `cd` inside it, and install the locked dependencies:
 
 ```
-pip install -e .
+uv sync --locked --python 3.12
+uv run --locked pbo envs/sphere_2d.json
 ```
+
+You can select Python 3.11 or 3.13 instead. uv creates `.venv` automatically;
+no manual activation is needed. Commit `uv.lock` when updating dependencies
+with `uv lock --upgrade`, and run the tests before committing the update.
+
+Standard pip installation is also supported:
+
+```
+python -m venv .venv
+# Linux/macOS: source .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -e .
+python -m pip check
+```
+
+### NVIDIA GPU (optional)
+
+On Linux or Windows through WSL2, enable the `cuda` extra to install the
+CUDA/cuDNN user-space libraries required by the pinned TensorFlow version:
+
+```
+uv sync --locked --extra cuda --python 3.12
+uv run --locked --extra cuda pbo envs/sphere_2d.json
+```
+
+With pip, use `python -m pip install -e ".[cuda]"` instead. A compatible NVIDIA
+GPU and driver must already be available; the extra does not install the driver.
+See the [TensorFlow GPU setup guide](https://www.tensorflow.org/install/pip).
+Native Windows and macOS are not supported by this CUDA option: its dependency
+is Linux-only and is ignored on those systems. Run the commands inside WSL2
+when using Windows with an NVIDIA GPU.
+
+Check that TensorFlow detects the GPU:
+
+```
+uv run --locked --extra cuda python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
+```
+
+An empty list means GPU access is not working; TensorFlow can still fall back
+to the CPU. Keep `--extra cuda` on `uv run`/`uv sync` commands that synchronize
+the environment.
+
+By default TensorFlow reserves all the free GPU memory at the first kernel,
+which starves anything else sharing the card. PBO therefore configures the GPU
+on import: memory grows on demand, so the run only holds what it uses (a few
+hundred MiB for the bundled environments). To cap the footprint with a hard
+limit instead, for instance to keep room for a desktop session:
+
+```
+PBO_GPU_MEMORY_LIMIT_MB=2048 uv run --locked --extra cuda pbo envs/sphere_2d.json
+```
+
+The cap is applied per GPU, in MiB; an empty, zero or negative value falls back
+to memory growth, and a non-numeric value fails immediately instead of silently
+re-enabling the full preallocation.
+
+To return to the default installation, run `uv sync --locked` without the
+extra. The default installation does not install NVIDIA libraries and can emit
+GPU detection warnings on Linux.
+
+CI checks CUDA-extra installation and CPU fallback on a Linux runner without a
+GPU; it does not validate GPU execution or performance.
+
+### Running and testing
+
+Metadata, dependencies, package discovery and the CLI entry point are declared
+in `pyproject.toml`; `uv.lock` pins the resolved dependencies across supported
+Python versions. `pip install -r requirements.txt` installs the same editable
+package but does not use the uv lockfile. The previous frozen Python 3.6-era
+dependency list is no longer used. GPU and other operating-system/architecture
+combinations are subject to TensorFlow's platform support and are not covered
+by this project's CPU matrix.
 
 The environments from the paper are available in the `envs/*` folder. For each `.py` environment file, you need a `.json` parameter file **located in the same directory**. To run an environment, just use:
 
 ```
-pbo path/to/envs/my_env.json
+uv run --locked pbo path/to/envs/my_env.json
 ```
+
+Run the compatibility and training regression tests with:
+
+```
+uv run --locked python -m unittest discover -s tests -v
+uv build
+```
+
+The tests exercise continuous (`es`, `cma-diag`, `cma-full`) and discrete
+policy updates, parallel environments using `spawn`, result files, and a
+single-generation CLI run including its plot. CI uses `uv sync --locked
+--no-editable`, builds both the wheel and source distribution, and checks the
+installed command outside the source checkout. With pip, activate your virtual
+environment and omit `uv run --locked` from the commands above.
 
 Below are some selected optimization cases performed with the algorithm.
 
